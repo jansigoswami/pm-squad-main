@@ -32,17 +32,18 @@ function StatCard({ label, value, suffix = '', cls }) {
 }
 
 // Download a boss export endpoint as a file.
-async function downloadFile(path, filename) {
+async function downloadFile(path, filename, userId = 'all') {
   try {
-    const res = await api.get(path, { responseType: 'blob' });
-    const url = URL.createObjectURL(new Blob([res.data]));
+    const url = userId === 'all' ? path : `${path}?userId=${userId}`;
+    const res = await api.get(url, { responseType: 'blob' });
+    const blobUrl = URL.createObjectURL(new Blob([res.data]));
     const a = document.createElement('a');
-    a.href = url;
+    a.href = blobUrl;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(blobUrl);
   } catch {
     toast.error('Export failed');
   }
@@ -52,6 +53,7 @@ export default function AnalyticsView() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [range, setRange] = useState(RANGES[0]);
+  const [selectedUserId, setSelectedUserId] = useState('all');
   const [summary, setSummary] = useState(null);
   const [byUser, setByUser] = useState([]);
   const [trend, setTrend] = useState([]);
@@ -147,9 +149,23 @@ export default function AnalyticsView() {
 
       {/* Per-user completion */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
-          Per-user completion
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+            Per-user completion
+          </h3>
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            className="text-xs bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-gray-600 dark:text-gray-300 focus:outline-none"
+          >
+            <option value="all">All Members</option>
+            {byUser.map((u) => (
+              <option key={u._id} value={u._id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="space-y-3">
           {byUser.map((u) => (
             <div key={u.name} className="flex items-center gap-3">
@@ -177,13 +193,13 @@ export default function AnalyticsView() {
       {/* Export */}
       <div className="flex gap-2">
         <button
-          onClick={() => downloadFile('/export/pdf', 'pmsquad-report.pdf')}
+          onClick={() => downloadFile('/export/pdf', 'pmsquad-report.pdf', selectedUserId)}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
         >
           <FileText className="h-4 w-4" /> Export PDF
         </button>
         <button
-          onClick={() => downloadFile('/export/csv', 'pmsquad-tasks.csv')}
+          onClick={() => downloadFile('/export/csv', 'pmsquad-tasks.csv', selectedUserId)}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
         >
           <Download className="h-4 w-4" /> Export CSV

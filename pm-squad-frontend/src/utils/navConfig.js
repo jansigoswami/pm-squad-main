@@ -20,6 +20,7 @@ export const PM_NAV = [
 export const BOSS_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/team', label: 'Team', icon: Users },
+  { to: '/calendar', label: 'Calendar', icon: Calendar },
   { to: '/workload', label: 'Workload', icon: BarChart2 },
   { to: '/analytics', label: 'Analytics', icon: TrendingUp },
   { to: '/reminders', label: 'Reminders', icon: Bell },

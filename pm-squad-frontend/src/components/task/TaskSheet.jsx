@@ -25,6 +25,8 @@ const SUGGESTED_LABELS = ['design', 'research', 'urgent', 'review', 'meeting'];
 const REMINDER_OPTIONS = [
   { value: '', label: 'No reminder' },
   { value: 'at', label: 'At due time' },
+  { value: '15m', label: '15 min before' },
+  { value: '30m', label: '30 min before' },
   { value: '1h', label: '1 hour before' },
   { value: '1d', label: '1 day before' },
   { value: '2d', label: '2 days before' },
@@ -67,6 +69,7 @@ export default function TaskSheet() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shake, setShake] = useState(0);
+  const [users, setUsers] = useState([]);
   const titleRef = useRef(null);
 
   // Reset form whenever the sheet opens.
@@ -88,14 +91,28 @@ export default function TaskSheet() {
           done: !!s.done,
         })),
         notes: data.notes || '',
+        assignees: data.assignees?.map((a) => a._id || a) || [],
+        visibility: data.visibility || 'private',
       });
       setShowSubtasks((data.subtasks || []).length > 0);
     } else {
-      setForm(emptyForm({ due: defaults?.due ? toDateInput(defaults.due) : '' }));
+      setForm(emptyForm({ 
+        due: defaults?.due ? toDateInput(defaults.due) : '',
+        assignees: [user?._id],
+        visibility: 'private',
+      }));
       setShowSubtasks(false);
     }
     setTimeout(() => titleRef.current?.focus(), 250);
-  }, [isOpen, data, defaults]);
+  }, [isOpen, data, defaults, user?._id]);
+
+  // Fetch users for assignee dropdown (Admin only)
+  useEffect(() => {
+    if (!isOpen || user?.role !== 'boss') return;
+    api.get('/users')
+      .then(({ data }) => setUsers(data.data || []))
+      .catch(() => {});
+  }, [isOpen, user?.role]);
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
@@ -144,6 +161,8 @@ export default function TaskSheet() {
       labels: form.labels,
       subtasks: form.subtasks,
       notes: form.notes,
+      assignees: form.assignees,
+      visibility: form.visibility,
     };
     try {
       if (editMode) {
@@ -287,6 +306,67 @@ export default function TaskSheet() {
               />
             </div>
           </div>
+
+          {/* Assign to (Admin only) */}
+          {user?.role === 'boss' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Assign to
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {users.map((u) => (
+                  <button
+                    key={u._id}
+                    onClick={() => {
+                      const current = form.assignees || [];
+                      if (current.includes(u._id)) {
+                        set('assignees', current.filter((id) => id !== u._id));
+                      } else {
+                        set('assignees', [...current, u._id]);
+                      }
+                    }}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
+                      (form.assignees || []).includes(u._id)
+                        ? 'bg-brand-100 border-brand-500 text-brand-700 dark:bg-brand-600/20 dark:text-brand-300'
+                        : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                    )}
+                  >
+                    <Avatar user={u} size="sm" />
+                    {u.name.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Visibility toggle (Admin only) */}
+          {user?.role === 'boss' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-2">
+                Visibility
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { v: 'private', label: 'Only me' },
+                  { v: 'shared', label: 'Everyone' },
+                ].map(({ v, label }) => (
+                  <button
+                    key={v}
+                    onClick={() => set('visibility', v)}
+                    className={cn(
+                      'flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-all duration-150',
+                      form.visibility === v
+                        ? 'bg-brand-600 text-white border-transparent'
+                        : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Labels */}
           <div>

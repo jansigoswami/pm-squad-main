@@ -13,6 +13,8 @@ const EDITABLE_FIELDS = [
   'reminder',
   'labels',
   'subtasks',
+  'assignees',
+  'visibility',
 ];
 
 // Human-readable labels for status values (used in activity messages).
@@ -30,6 +32,7 @@ const STATUS_LABELS = {
  *
  * PRIVACY: personal tasks are only ever returned to their owner — not even
  * the boss can see another user's personal tasks.
+ * Shared tasks are visible to all assignees.
  */
 const getTasks = async (req, res) => {
   let query;
@@ -43,12 +46,17 @@ const getTasks = async (req, res) => {
     };
   } else {
     query = {
-      $or: [{ owner: req.user._id }, { type: 'work' }],
+      $or: [
+        { owner: req.user._id },
+        { type: 'work' },
+        { visibility: 'shared', assignees: req.user._id },
+      ],
     };
   }
 
   const tasks = await Task.find(query)
     .populate('owner', 'name initials color role')
+    .populate('assignees', 'name initials color')
     .populate('lastEditedBy', 'name initials')
     .sort({ due: 1, createdAt: -1 });
 
@@ -99,6 +107,7 @@ const createTask = async (req, res) => {
 const getTask = async (req, res) => {
   const task = await Task.findById(req.params.id)
     .populate('owner', 'name initials color role')
+    .populate('assignees', 'name initials color')
     .populate('lastEditedBy', 'name initials');
 
   if (!task) {
@@ -195,6 +204,7 @@ const updateTask = async (req, res) => {
     runValidators: true,
   })
     .populate('owner', 'name initials color role')
+    .populate('assignees', 'name initials color')
     .populate('lastEditedBy', 'name initials');
 
   // Log the most meaningful change (status changes get a dedicated action).

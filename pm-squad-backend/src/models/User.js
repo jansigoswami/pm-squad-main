@@ -25,6 +25,20 @@ const userSchema = new mongoose.Schema(
       enum: ['boss', 'pm'],
       default: 'pm',
     },
+    permissions: {
+      canAssignTasks: {
+        type: Boolean,
+        default: false,
+      },
+      canCreateSharedTasks: {
+        type: Boolean,
+        default: false,
+      },
+      canViewAnalytics: {
+        type: Boolean,
+        default: false,
+      },
+    },
     color: {
       type: String,
       default: '#6366F1',

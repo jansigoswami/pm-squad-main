@@ -66,6 +66,7 @@ const getByUser = async (req, res) => {
     const completionRate =
       stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
     return {
+      _id: user._id.toString(),
       name: user.name,
       initials: user.initials,
       color: user.color,

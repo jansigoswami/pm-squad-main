@@ -31,7 +31,12 @@ export function useSocket() {
     const taskStore = useTaskStore.getState;
     const uiStore = useUiStore.getState;
 
-    socket.on('task:created', (task) => taskStore().addTaskLocal(task));
+    socket.on('task:created', (task) => {
+      // Don't add if it's the current user's own task (they already added it via API response)
+      if (task.owner?._id !== user._id && task.owner !== user._id) {
+        taskStore().addTaskLocal(task);
+      }
+    });
     socket.on('task:updated', (task) => taskStore().updateTaskLocal(task));
     socket.on('task:deleted', ({ taskId }) =>
       taskStore().removeTaskLocal(taskId)

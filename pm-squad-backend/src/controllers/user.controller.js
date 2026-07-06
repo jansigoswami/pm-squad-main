@@ -8,10 +8,84 @@ const Task = require('../models/Task');
  */
 const getAllUsers = async (req, res) => {
   const users = await User.find({ isActive: true }).select(
-    'name initials color role'
+    'name initials color role permissions'
   );
 
   res.status(200).json({ success: true, data: users });
+};
+
+/**
+ * @route   PATCH /api/users/:id/permissions
+ * @desc    Update user permissions (Admin only).
+ * @access  Boss only
+ */
+const updateUserPermissions = async (req, res) => {
+  if (req.user.role !== 'boss') {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  const { canAssignTasks, canCreateSharedTasks, canViewAnalytics } = req.body;
+
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  if (user.role === 'boss') {
+    return res.status(400).json({ success: false, message: 'Cannot modify admin permissions' });
+  }
+
+  user.permissions = {
+    canAssignTasks: canAssignTasks ?? user.permissions.canAssignTasks,
+    canCreateSharedTasks: canCreateSharedTasks ?? user.permissions.canCreateSharedTasks,
+    canViewAnalytics: canViewAnalytics ?? user.permissions.canViewAnalytics,
+  };
+
+  await user.save();
+
+  res.status(200).json({ success: true, data: user });
+};
+
+/**
+ * @route   DELETE /api/users/:id
+ * @desc    Delete a team member and reassign their tasks (Admin only).
+ * @access  Boss only
+ */
+const deleteUser = async (req, res) => {
+  if (req.user.role !== 'boss') {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  const { reassignTo } = req.body;
+
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  if (user.role === 'boss') {
+    return res.status(400).json({ success: false, message: 'Cannot delete admin' });
+  }
+
+  // Reassign tasks if a target user is provided
+  if (reassignTo) {
+    await Task.updateMany(
+      { owner: req.params.id },
+      { owner: reassignTo, lastEditedBy: req.user._id }
+    );
+  } else {
+    // Archive tasks by setting owner to null or marking as inactive
+    await Task.updateMany(
+      { owner: req.params.id },
+      { owner: null, lastEditedBy: req.user._id }
+    );
+  }
+
+  // Soft delete user (set isActive to false)
+  user.isActive = false;
+  await user.save();
+
+  res.status(200).json({ success: true, message: 'User deleted successfully' });
 };
 
 /**
@@ -84,4 +158,4 @@ const getWorkload = async (req, res) => {
   res.status(200).json({ success: true, data: workload });
 };
 
-module.exports = { getAllUsers, getUserTasks, getWorkload };
+module.exports = { getAllUsers, updateUserPermissions, deleteUser, getUserTasks, getWorkload };

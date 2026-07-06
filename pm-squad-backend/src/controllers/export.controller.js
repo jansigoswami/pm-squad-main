@@ -22,11 +22,17 @@ const formatDate = (date) =>
 
 /**
  * @route   GET /api/export/csv
- * @desc    Export all work tasks as a CSV file.
+ * @desc    Export all work tasks as a CSV file, optionally filtered by user.
  * @access  Boss only
  */
 const exportCSV = async (req, res) => {
-  const tasks = await Task.find({ type: 'work' })
+  const { userId } = req.query;
+  const query = { type: 'work' };
+  if (userId && userId !== 'all') {
+    query.owner = userId;
+  }
+
+  const tasks = await Task.find(query)
     .populate('owner', 'name')
     .sort({ due: 1, createdAt: -1 });
 
@@ -68,12 +74,18 @@ const exportCSV = async (req, res) => {
 
 /**
  * @route   GET /api/export/pdf
- * @desc    Export a formatted PDF task report.
+ * @desc    Export a formatted PDF task report, optionally filtered by user.
  * @access  Boss only
  */
 const exportPDF = async (req, res) => {
+  const { userId } = req.query;
+  const query = { type: 'work' };
+  if (userId && userId !== 'all') {
+    query.owner = userId;
+  }
+
   const [tasks, totalUsers] = await Promise.all([
-    Task.find({ type: 'work' })
+    Task.find(query)
       .populate('owner', 'name')
       .sort({ due: 1, createdAt: -1 }),
     User.countDocuments({ isActive: true }),

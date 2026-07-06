@@ -35,6 +35,15 @@ const taskSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    assignees: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    visibility: {
+      type: String,
+      enum: ['private', 'shared'],
+      default: 'private',
+    },
     status: {
       type: String,
       enum: ['todo', 'inprog', 'blocked', 'done'],
@@ -51,7 +60,7 @@ const taskSchema = new mongoose.Schema(
     },
     reminder: {
       type: String,
-      enum: ['', 'at', '1h', '1d', '2d', '1w'],
+      enum: ['', 'at', '15m', '30m', '1h', '1d', '2d', '1w'],
       default: '',
     },
     labels: [String],

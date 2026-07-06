@@ -93,9 +93,15 @@ export default function TaskCard({
       <div className="flex-1 min-w-0">
         <p
           className={cn(
-            'text-sm truncate text-gray-900 dark:text-gray-100',
+            'text-sm text-gray-900 dark:text-gray-100',
             done && 'line-through text-gray-400 dark:text-gray-500'
           )}
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
         >
           {task.title}
         </p>
