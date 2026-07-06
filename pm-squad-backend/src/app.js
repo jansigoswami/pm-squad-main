@@ -12,7 +12,7 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 
 const PORT = process.env.PORT || 5000;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CLIENT_URL = process.env.CLIENT_URL || 'https://pm-squad-ui.onrender.com';
 
 // --- App + HTTP server + Socket.io ---
 const app = express();
